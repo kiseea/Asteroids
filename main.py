@@ -40,9 +40,10 @@ def main():
     
     game_over = False
     score = 0
-    
+    lives = PLAYER_LIFES
+
     def reset_game():
-        nonlocal game_over, score
+        nonlocal game_over, score, lives
         updatable.empty()
         drawable.empty()
         asteroids.empty()
@@ -52,6 +53,7 @@ def main():
         asteroid_field = AsteroidField()
         game_over = False
         score = 0
+        lives = PLAYER_LIFES
         return player, asteroid_field
 
     updatable = pygame.sprite.Group()
@@ -66,7 +68,7 @@ def main():
 
     player, asteroid_field = reset_game()
     dt = 0
-    score = 0
+    respawn_timer = 0
 
     while True:
         for event in pygame.event.get():
@@ -81,11 +83,20 @@ def main():
                         return
         
         if not game_over:
-            updatable.update(dt)
+            if respawn_timer > 0:
+                respawn_timer -= dt
+            else:
+                updatable.update(dt)
 
             for asteroid in asteroids:
-                if asteroid.collides_with(player):
-                    game_over = True
+                if player.alive() and asteroid.collides_with(player):
+                    player.kill()
+                    lives -= 1
+                    if lives > 0:
+                        respawn_timer = 0.5
+                        player = Player(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+                    else:
+                        game_over = True
                     break
             
                 for shot in shots:
@@ -99,7 +110,9 @@ def main():
         
         if not game_over:
             score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+            lives_text = font.render(f"Lives: {lives}", True, (255, 255, 255))
             screen.blit(score_text, (10, 10))
+            screen.blit(lives_text, (10, 50))
 
             for item in drawable:
                 item.draw(screen)
